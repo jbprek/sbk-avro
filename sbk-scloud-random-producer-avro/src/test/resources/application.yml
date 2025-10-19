@@ -1,0 +1,69 @@
+server:
+  port: 10010
+spring:
+  application:
+    name: sbk-scloud-tx-consumer-test
+
+  kafka:
+    producer:
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+    consumer:
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+    properties:
+      schema.registry.url: http://localhost:8081
+
+  cloud:
+    stream:
+      bindings:
+        processBirthEvent-in-0:
+          destination: birth.register
+          group: birth-analytics-group-2
+          consumer:
+            use-native-decoding: true
+      kafka:
+        bindings:
+          processBirthEvent-in-0:
+            consumer:
+              configuration:
+                key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+                value.deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+                schema.registry.url: http://localhost:8081
+                specific.avro.reader: true
+                startOffset: earliest
+                resetOffsets: true
+        binder:
+          brokers: localhost:9092
+          configuration:
+            schema.registry.url: http://localhost:8081
+
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,beans
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    foo.kafka.tx.consumer: DEBUG
+    org.springframework.transaction: TRACE
+    org.springframework.kafka.transaction: DEBUG
+    org.springframework.orm.jpa.JpaTransactionManager: DEBUG
+    org.springframework.cloud.stream: DEBUG
+    org.springframework.messaging: DEBUG
+    root: INFO
