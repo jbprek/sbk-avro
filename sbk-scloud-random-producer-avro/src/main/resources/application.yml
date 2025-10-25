@@ -14,11 +14,6 @@ spring:
           content-type: application/*+avro
           producer:
             use-native-encoding: true
-        randomSupplier-out-0:
-          destination: birth.register.avro
-          content-type: application/*+avro
-          producer:
-            use-native-encoding: true
       poller:
         fixed-delay: 3000
       kafka:

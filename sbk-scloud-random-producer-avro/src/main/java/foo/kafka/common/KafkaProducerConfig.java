@@ -1,4 +1,4 @@
-package foo.kafka.consumer.randomproducer;
+package foo.kafka.common;
 
 import foo.avro.birth.BirthEvent;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;

@@ -1,4 +1,4 @@
-package foo.kafka.consumer.randomproducer;
+package foo.kafka.randomproducer;
 
 import foo.avro.birth.BirthEvent;
 import lombok.extern.slf4j.Slf4j;
@@ -12,10 +12,13 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 
 @SpringBootApplication
+@ComponentScan(basePackages = {"foo.kafka.common", "foo.kafka.randomproducer"})
 @Slf4j
 public class SbkCloudRandomProducerApplication {
 
@@ -31,20 +34,21 @@ public class SbkCloudRandomProducerApplication {
 
     @Bean
     public Supplier<Message<BirthEvent>> randomSupplier() {
-        // Build a new event and wrap it into a Message each time the supplier is invoked
-        // so Cloud Stream's poller will produce a new message on each poll instead of the same first event.
+
         return () -> {
+            var town = generateRandomTown();
             var event = BirthEvent.newBuilder()
                     .setId(RANDOM.nextLong(1, 10000))
                     .setName(generateRandomName())
                     .setDob(LocalDate.now().minusDays(randomDaysAgo()))
-                    .setTown("Town")
+                    .setTown(town)
                     .setWeight(new BigDecimal("3.3"))
                     .build();
 
             int count = COUNTER.incrementAndGet();
             var msg = MessageBuilder.withPayload(event)
                     .setHeader("sequence", count)
+                    .setHeader(KafkaHeaders.KEY, event.getTown())
                     .build();
 
             log.info("[TX] Produced event #{}: {}", count, event);
@@ -58,6 +62,10 @@ public class SbkCloudRandomProducerApplication {
             sb.append(CHARACTERS.charAt(RANDOM.nextInt(CHARACTERS.length())));
         }
         return sb.toString();
+    }
+
+    public static String generateRandomTown() {
+        return "TOWN" + RANDOM.nextInt(CHARACTERS.length());
     }
 
     public static long randomDaysAgo() {
