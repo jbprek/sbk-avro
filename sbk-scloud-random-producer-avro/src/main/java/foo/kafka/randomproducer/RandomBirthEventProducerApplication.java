@@ -20,7 +20,7 @@ import org.springframework.messaging.support.MessageBuilder;
 @SpringBootApplication
 @ComponentScan(basePackages = {"foo.kafka.common", "foo.kafka.randomproducer"})
 @Slf4j
-public class SbkCloudRandomProducerApplication {
+public class RandomBirthEventProducerApplication {
 
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     private static final int LENGTH = 5;
@@ -28,7 +28,7 @@ public class SbkCloudRandomProducerApplication {
     private static final AtomicInteger COUNTER = new AtomicInteger();
 
     public static void main(String[] args) {
-        SpringApplication.run(SbkCloudRandomProducerApplication.class, args);
+        SpringApplication.run(RandomBirthEventProducerApplication.class, args);
     }
 
 
