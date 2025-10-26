@@ -11,20 +11,20 @@ spring:
       bindings:
         readAndLog-in-0:
           destination: birth.register.avro
-          group: birth-simple-consumer-group
+          group: birth-event-simple-consumer-group-${random-uuid}
           consumer:
             use-native-decoding: true
       kafka:
         bindings:
           readAndLog-in-0:
             consumer:
+              startOffset: earliest
+              resetOffsets: true
               configuration:
                 key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
                 value.deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
                 schema.registry.url: http://localhost:8081
                 specific.avro.reader: true
-                startOffset: earliest
-                resetOffsets: true
 
         binder:
           brokers: localhost:9092

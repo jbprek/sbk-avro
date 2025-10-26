@@ -10,7 +10,7 @@ spring:
       bindings:
         process-in-0:
           destination: birth.register.avro
-          group: birth-analytics-group-2
+          group: birth-event-processor-group
           consumer:
             use-native-decoding: true
         process-out-0:
@@ -21,13 +21,13 @@ spring:
         bindings:
           process-in-0:
             consumer:
+              resetOffsets: false
+              startOffset: earliest
               configuration:
                 key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
                 value.deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
                 schema.registry.url: http://localhost:8081
                 specific.avro.reader: true
-                startOffset: earliest
-                resetOffsets: true
 
           process-out-0:
             producer:
