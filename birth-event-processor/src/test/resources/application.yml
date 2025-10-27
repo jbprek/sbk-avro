@@ -1,0 +1,67 @@
+spring:
+  application:
+    name: birth-event-processor
+  cloud:
+    function:
+      definition: process
+    stream:
+      bindings:
+        process-in-0:
+          destination: birth.register.avro.mock
+          group: birth-event-processor-group
+          consumer:
+            use-native-decoding: true
+        process-out-0:
+          destination: birth.stats.avro.mock
+          producer:
+            use-native-encoding: true
+        # Additional test-only producer binding so StreamBridge can send to the input topic
+        test-producer-out-0:
+          destination: birth.register.avro.mock
+          producer:
+            use-native-encoding: true
+      kafka:
+        bindings:
+          process-in-0:
+            consumer:
+              resetOffsets: true
+              startOffset: earliest
+              configuration:
+                key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+                value.deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+                schema.registry.url: mock://embedded-registry
+                specific.avro.reader: true
+                auto.register.schemas: true
+
+          process-out-0:
+            producer:
+              configuration:
+                key.serializer: org.apache.kafka.common.serialization.StringSerializer
+                value.serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+                schema.registry.url: mock://embedded-registry
+                specific.avro.writer: true
+                auto.register.schemas: true
+
+          # kafka producer configuration for the test StreamBridge binding
+          test-producer-out-0:
+            producer:
+              configuration:
+                key.serializer: org.apache.kafka.common.serialization.StringSerializer
+                value.serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+                schema.registry.url: mock://embedded-registry
+                specific.avro.writer: true
+                auto.register.schemas: true
+
+        binder:
+          brokers: ${spring.embedded.kafka.brokers}
+          configuration:
+            schema.registry.url: mock://embedded-registry
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers}
+    properties:
+      schema.registry.url: mock://embedded-registry
+
+
+logging:
+  level:
+    root: INFO
