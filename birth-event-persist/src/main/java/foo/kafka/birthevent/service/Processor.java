@@ -7,12 +7,14 @@ import foo.kafka.birthevent.eventstore.persistence.BirthRepository;
 import foo.kafka.common.MessageCoordinates;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.SQLTransientException;
 import java.time.Duration;
 
 @Slf4j
@@ -23,7 +25,6 @@ public class Processor {
     private final BirthMapper mapper;
     private final BirthRepository repository;
 
-    @Transactional
     public void process(Message<BirthEvent> message) {
         BirthEvent event = message.getPayload();
         String key = message.getHeaders().get(KafkaHeaders.RECEIVED_KEY, String.class);
@@ -42,9 +43,28 @@ public class Processor {
             log.info("Consumed BirthEvent at {}: with key={},value={}", coordinates, key, event);
         } catch (Exception e) {
             log.warn("Error persisting BirthEvent at {} : {} ", coordinates, e.getMessage());
-            // pause briefly before retrying
-            ack.nack(Duration.ofMillis(100L));
+            if (isTransient(e)) {
+                ack.nack(Duration.ofMillis(100L));
+            } else {
+                try {
+                    ack.acknowledge();
+                } catch (Exception ackEx) {
+                    log.warn("Failed to acknowledge after non-transient error at {} : {}", coordinates, ackEx.getMessage());
+                }
+            }
         }
+    }
 
+    private boolean isTransient(Throwable t) {
+        while (t != null) {
+            if (t instanceof TransientDataAccessException) {
+                return true;
+            }
+            if (t instanceof SQLTransientException) {
+                return true;
+            }
+            t = t.getCause();
+        }
+        return false;
     }
 }
