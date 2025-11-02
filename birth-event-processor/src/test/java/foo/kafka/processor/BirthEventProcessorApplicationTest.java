@@ -43,7 +43,7 @@ import java.util.Map;
         "birth.stats.avro.mock"
 })
 @DirtiesContext
-class BirthEventProcessorApplicationIT {
+class BirthEventProcessorApplicationTest {
 
     @Autowired
     private StreamBridge streamBridge;
@@ -95,7 +95,6 @@ class BirthEventProcessorApplicationIT {
                 .setHeader(KafkaHeaders.KEY, birthEventIn.getTown())
                 .build();
 
-        // Send via StreamBridge using the test-only producer binding that routes to the input topic
         streamBridge.send("test-producer-out-0", message);
 
         ConsumerRecords<String, BirthStatEntry> kakfaRecords = consumer.poll(Duration.ofMillis(2000));
