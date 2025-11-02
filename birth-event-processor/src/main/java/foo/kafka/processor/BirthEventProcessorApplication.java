@@ -16,10 +16,10 @@ import org.springframework.messaging.Message;
 @SpringBootApplication
 @ComponentScan(basePackages = {"foo.kafka.common", "foo.kafka.processor"})
 @Slf4j
-public class BirtEventProcessorApplication {
+public class BirthEventProcessorApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(BirtEventProcessorApplication.class, args);
+        SpringApplication.run(BirthEventProcessorApplication.class, args);
     }
 
 
