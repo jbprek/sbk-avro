@@ -9,10 +9,10 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
     <groupId>foo.kafka.tx.consumer</groupId>
-    <artifactId>birth-event-persist</artifactId>
+    <artifactId>birth-event-persist-manual-ack</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>birth-event-persist</name>
-    <description>birth-event-persist</description>
+    <name>birth-event-persist-manual-ack</name>
+    <description>birth-event-persist-manual-ack</description>
 
     <dependencies>
         <dependency>

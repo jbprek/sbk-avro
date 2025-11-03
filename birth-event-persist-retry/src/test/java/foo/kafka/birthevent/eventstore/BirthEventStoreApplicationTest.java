@@ -127,7 +127,7 @@ class BirthEventStoreApplicationTest {
                 .untilAsserted(() -> verify(dao, times(1)).saveBirthEvent(any(Birth.class)));
 
         // Processor should log a Not Transient error and skip the message
-        assertTrue(output.getOut().contains("Not Transient Error persisting BirthEvent"),
+        assertTrue(output.getOut().contains("Failed to persist BirthEvent at "),
                 "Processor should log non-transient error and skip the message");
     }
 
