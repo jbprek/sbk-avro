@@ -1,0 +1,75 @@
+server:
+  port: 10014
+spring:
+  application:
+    name: birth-event-persist-service
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/births
+    username: births
+    password: births
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 30000
+      pool-name: HikariCP
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      auto-commit: false
+      transaction-isolation: TRANSACTION_READ_COMMITTED
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+    open-in-view: false
+
+  cloud:
+    function:
+      definition: process
+    stream:
+      bindings:
+        process-in-0:
+          destination: birth.register.avro
+          group: birth-event-store-group
+          consumer:
+            use-native-decoding: true
+      kafka:
+        bindings:
+          process-in-0:
+            consumer:
+              startOffset: earliest
+              resetOffsets: false
+              configuration:
+                enable.auto.commit: true
+                key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+                value.deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+                schema.registry.url: http://localhost:8081
+                specific.avro.reader: true
+
+        binder:
+          brokers: localhost:9092
+          configuration:
+            schema.registry.url: http://localhost:8081
+
+  management:
+    endpoints:
+      web:
+        exposure:
+          include: health,info,metrics,env,beans
+    endpoint:
+      health:
+        show-details: always
+
+  logging:
+    level:
+      root: INFO
+
+processor:
+  retry:
+    maxAttempts: 5
+    backoffMs: 500

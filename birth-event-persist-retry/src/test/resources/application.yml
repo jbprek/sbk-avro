@@ -1,0 +1,91 @@
+server:
+  port: 10014
+spring:
+  application:
+    name: birth-event-persist-service
+
+
+  datasource:
+    url: jdbc:h2:mem:births;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 30000
+      pool-name: HikariCP
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      auto-commit: false
+      transaction-isolation: TRANSACTION_READ_COMMITTED
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+    open-in-view: false
+
+  cloud:
+    function:
+      definition: process
+    stream:
+      bindings:
+        test-producer-out-0:
+          destination: birth.register.avro.mock
+          producer:
+            use-native-encoding: true
+        process-in-0:
+          destination: birth.register.avro.mock
+          group: birth-event-store-group
+          consumer:
+            use-native-decoding: true
+      kafka:
+        bindings:
+          test-producer-out-0:
+            producer:
+              configuration:
+                key.serializer: org.apache.kafka.common.serialization.StringSerializer
+                value.serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+                schema.registry.url: mock://embedded-registry
+                specific.avro.writer: true
+                auto.register.schemas: true
+          process-in-0:
+            consumer:
+              startOffset: earliest
+              resetOffsets: false
+              configuration:
+                enable.auto.commit: true
+                key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+                value.deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+                schema.registry.url: mock://embedded-registry
+                specific.avro.reader: true
+                auto.register.schemas: true
+
+        binder:
+          brokers: ${spring.embedded.kafka.brokers}
+          configuration:
+            schema.registry.url: mock://embedded-registry
+
+  logging:
+    level:
+      root: INFO
+      foo.kafka: DEBUG
+      org.springframework.kafka: TRACE
+      org.springframework.kafka.listener: TRACE
+      org.springframework.cloud.stream: DEBUG
+      org.springframework.cloud.stream.binder.kafka: DEBUG
+      org.apache.kafka: TRACE
+      org.apache.kafka.clients.consumer: TRACE
+      org.apache.kafka.clients.producer: TRACE
+      org.apache.kafka.common.network: TRACE
+      org.apache.kafka.common.metrics: DEBUG
+      io.confluent: DEBUG
+      io.confluent.kafka.serializers: DEBUG
+      io.confluent.kafka.schemaregistry.client: DEBUG
+      org.apache.avro: DEBUG
+      org.springframework.messaging: DEBUG
+
