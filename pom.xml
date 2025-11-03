@@ -221,7 +221,8 @@
         <module>birth-event-random-producer</module>
         <module>birth-event-processor</module>
         <module>birth-event-simple-consumer</module>
-        <module>birth-event-persist</module>
+        <module>birth-event-persist-manual-ack</module>
+        <module>birth-event-persist-retry</module>
         <module>birth-stats-simple-consumer</module>
     </modules>
 
