@@ -26,7 +26,7 @@ public record MessageCoordinates(String topic, Integer partition, Long offset) {
 
     @Override
     public String toString() {
-        return String.format("%s(%s,%s)",
+        return "%s(%s,%s)".formatted(
                 Objects.toString(topic(), "null"),
                 Objects.toString(partition(), "-1"),
                 Objects.toString(offset(), "-1"));

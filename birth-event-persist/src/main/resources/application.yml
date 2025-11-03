@@ -2,7 +2,7 @@ server:
   port: 10014
 spring:
   application:
-    name: birth-event-simple-consumer
+    name: birth-event-persist-service
 
   datasource:
     url: jdbc:mysql://localhost:3306/births

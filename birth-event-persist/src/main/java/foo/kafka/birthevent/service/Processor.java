@@ -3,7 +3,6 @@ package foo.kafka.birthevent.service;
 import foo.avro.birth.BirthEvent;
 import foo.kafka.birthevent.eventstore.persistence.Birth;
 import foo.kafka.birthevent.eventstore.persistence.BirthMapper;
-import foo.kafka.birthevent.eventstore.persistence.BirthRepository;
 import foo.kafka.common.MessageCoordinates;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +11,6 @@ import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.SQLTransientException;
 import java.time.Duration;
@@ -23,7 +21,8 @@ import java.time.Duration;
 public class Processor {
 
     private final BirthMapper mapper;
-    private final BirthRepository repository;
+    private final BirthDao dao;
+
 
     public void process(Message<BirthEvent> message) {
         BirthEvent event = message.getPayload();
@@ -36,35 +35,69 @@ public class Processor {
         }
 
         Birth entity = mapper.toEntity(message.getPayload());
+        Exception lastException = null;
+
         try {
-            Birth saved = repository.save(entity);
-            ack.acknowledge();
-            log.info("Persisted BirthEvent: {}", saved);
+            dao.saveBirthEvent(entity);
+            ackMessage(ack, coordinates);
+            log.info("Persisted BirthEvent: {}", entity);
             log.info("Consumed BirthEvent at {}: with key={},value={}", coordinates, key, event);
+            return; // Success
         } catch (Exception e) {
-            log.warn("Error persisting BirthEvent at {} : {} ", coordinates, e.getMessage());
             if (isTransient(e)) {
-                ack.nack(Duration.ofMillis(100L));
+                nackMessage(ack, Duration.ofMillis(500), coordinates);
+                log.warn("Transient Error persisting BirthEvent at {} : {} ",
+                        coordinates, e.getMessage(), e);
+
             } else {
-                try {
-                    ack.acknowledge();
-                } catch (Exception ackEx) {
-                    log.warn("Failed to acknowledge after non-transient error at {} : {}", coordinates, ackEx.getMessage());
-                }
+                ackMessage(ack, coordinates);
+                log.error("Not Transient Error persisting BirthEvent at {} : {}, skipping message ",
+                        coordinates, e.getMessage());
             }
         }
     }
 
-    private boolean isTransient(Throwable t) {
-        while (t != null) {
-            if (t instanceof TransientDataAccessException) {
-                return true;
-            }
-            if (t instanceof SQLTransientException) {
-                return true;
-            }
-            t = t.getCause();
+
+private boolean isTransient(Throwable t) {
+    while (t != null) {
+        // Spring's TransientDataAccessException
+        if (t instanceof TransientDataAccessException) {
+            return true;
         }
-        return false;
+        // JDBC's SQLTransientException and subclasses
+        if (t instanceof SQLTransientException) {
+            return true;
+        }
+        // Some drivers wrap transient SQL exceptions in generic SQLExceptions or other wrappers.
+        // Inspect class name for common 'Transient' indicator as a fallback.
+        if (t instanceof java.sql.SQLException) {
+            String cls = t.getClass().getSimpleName();
+            if (cls != null && cls.toLowerCase().contains("transient")) {
+                return true;
+            }
+        }
+        t = t.getCause();
     }
+    return false;
+}
+
+private void ackMessage(Acknowledgment ack, String coordinates) {
+    try {
+        ack.acknowledge();
+        log.debug("Acknowledged message at {}", coordinates);
+    } catch (Exception ackEx) {
+        log.warn("Failed to acknowledge message at {} : {}", coordinates, ackEx.getMessage());
+        throw new RuntimeException("Failed to acknowledge message at %s".formatted(coordinates), ackEx);
+    }
+}
+
+private void nackMessage(Acknowledgment ack, Duration duration, String coordinates) {
+    try {
+        ack.nack(duration);
+        log.debug("Nack-ed message at {}", coordinates);
+    } catch (Exception ackEx) {
+        log.warn("Failed to Nack message at {} : {}", coordinates, ackEx.getMessage());
+        throw new RuntimeException("Failed to Nack message at %s".formatted(coordinates), ackEx);
+    }
+}
 }
