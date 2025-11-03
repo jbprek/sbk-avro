@@ -12,9 +12,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.cloud.stream.function.StreamBridge;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.kafka.support.KafkaHeaders;
@@ -22,6 +23,7 @@ import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -66,25 +68,22 @@ class BirthEventStoreApplicationTest {
     @Autowired
     private BirthRepository repository;
 
-    @MockBean
+    @MockitoBean
     private BirthDao dao;
 
     @BeforeEach
     void setup() {
         repository.deleteAll();
         awaitUntilTableIsEmpty(repository);
-
-        // Default behavior for the mock DAO: persist via real repository so non-transient tests work
-        doAnswer(invocation -> {
-            Birth arg = invocation.getArgument(0);
-            repository.saveAndFlush(arg);
-            return null;
-        }).when(dao).saveBirthEvent(any(Birth.class));
     }
 
     @Test
     @DisplayName("An incoming BirthEvent is processed and sent to the output topic as BirthStatEntry")
     void testBirthEventProcessing() {
+        // ensure DAO persists in this test
+        doAnswer(invocation -> { repository.saveAndFlush(invocation.getArgument(0)); return null; })
+                .when(dao).saveBirthEvent(any(Birth.class));
+
         streamBridge.send("test-producer-out-0", message);
         // default mock behavior persists the entity
 
@@ -113,25 +112,23 @@ class BirthEventStoreApplicationTest {
         verify(dao, atLeast(3)).saveBirthEvent(any(Birth.class));
     }
 
-    @Test
-    @DisplayName("On non transient DB error, the BirthEvent is retried and persisted")
-    void testBirthEventProcessingNonTransientSkippingMessage() {
 
-        // First two calls throw transient exception, third call persists via the repository
-        doThrow(new TransientDataAccessException("Transient error 1") {
-        }).doThrow(new TransientDataAccessException("Transient error 2") {
-        }).doAnswer(invocation -> {
-            repository.saveAndFlush(invocation.getArgument(0));
-            return null;
-        }).when(dao).saveBirthEvent(any(Birth.class));
+    @Test
+    @DisplayName("On a non transient DB error, the BirthEvent is not persisted, and the message is skipped")
+    void testBirthEventProcessingNonTransientSkippingMessage(CapturedOutput output) {
+
+        doThrow(new DataIntegrityViolationException("Integrity Violation error"))
+                .when(dao).saveBirthEvent(any(Birth.class));
 
         streamBridge.send("test-producer-out-0", message);
 
-        // wait until the entity is persisted (retries will cause eventual persistence)
-        checkEntityPersisted();
+        // wait for the async consumer to invoke DAO and log
+        Awaitility.await().pollInterval(200, TimeUnit.MILLISECONDS).atMost(5, TimeUnit.SECONDS)
+                .untilAsserted(() -> verify(dao, times(1)).saveBirthEvent(any(Birth.class)));
 
-        // Expect at least 3 dao calls: two failing attempts and one successful
-        verify(dao, atLeast(3)).saveBirthEvent(any(Birth.class));
+        // Processor should log a Not Transient error and skip the message
+        assertTrue(output.getOut().contains("Not Transient Error persisting BirthEvent"),
+                "Processor should log non-transient error and skip the message");
     }
 
 
