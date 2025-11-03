@@ -8,16 +8,16 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.QueryTimeoutException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
-import org.springframework.retry.backoff.FixedBackOffPolicy;
-import org.springframework.retry.policy.ExceptionClassifierRetryPolicy;
-import org.springframework.retry.policy.NeverRetryPolicy;
+import org.springframework.retry.backoff.ExponentialBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 
-import java.util.Collections;
+import java.sql.SQLTransientException;
+import java.util.Map;
 
 import static org.mockito.Mockito.*;
 
@@ -85,18 +85,24 @@ class ProcessorTest {
     // Helper to construct the RetryTemplate used by the Processor in tests
     private RetryTemplate buildRetryTemplate() {
         RetryTemplate retryTemplate = new RetryTemplate();
-        ExceptionClassifierRetryPolicy retryPolicy = new ExceptionClassifierRetryPolicy();
-        retryPolicy.setExceptionClassifier((Throwable ex) -> {
-            if (ExceptionUtils.isTransient(ex)) {
-                return new SimpleRetryPolicy(5, Collections.singletonMap(Exception.class, true));
-            } else {
-                return new NeverRetryPolicy();
-            }
-        });
-        FixedBackOffPolicy backOff = new FixedBackOffPolicy();
-        backOff.setBackOffPeriod(500L);
+
+        Map<Class<? extends Throwable>, Boolean> retryableExceptions =
+                Map.of(TransientDataAccessException.class, true, SQLTransientException.class, true);
+
+        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy(
+                3,                 // maxAttempts
+                retryableExceptions,
+                true               // traverseCauses
+        );
+
+        ExponentialBackOffPolicy backOff = new ExponentialBackOffPolicy();
+        backOff.setInitialInterval(200L);
+        backOff.setMultiplier(2.0);
+        backOff.setMaxInterval(5000L);
+
         retryTemplate.setRetryPolicy(retryPolicy);
         retryTemplate.setBackOffPolicy(backOff);
+
         return retryTemplate;
     }
 }

@@ -3,13 +3,13 @@ package foo.kafka.birthevent.service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.retry.backoff.FixedBackOffPolicy;
-import org.springframework.retry.policy.ExceptionClassifierRetryPolicy;
-import org.springframework.retry.policy.NeverRetryPolicy;
+import org.springframework.dao.TransientDataAccessException;
+import org.springframework.retry.backoff.ExponentialBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 
-import java.util.Collections;
+import java.sql.SQLTransientException;
+import java.util.Map;
 
 @Configuration
 public class RetryConfig {
@@ -17,24 +17,32 @@ public class RetryConfig {
     @Value("${processor.retry.maxAttempts:5}")
     private int maxAttempts;
 
-    @Value("${processor.retry.backoffMs:500}")
-    private long backoffMs;
+    @Value("${processor.retry.initialIntervalMs:200}")
+    private long initialIntervalMs;
+
+    @Value("${processor.retry.multiplier:2.0}")
+    private double multiplier;
+
+    @Value("${processor.retry.maxIntervalMs:5000}")
+    private long maxIntervalMs;
 
     @Bean
     public RetryTemplate retryTemplate() {
         RetryTemplate retryTemplate = new RetryTemplate();
 
-        ExceptionClassifierRetryPolicy retryPolicy = new ExceptionClassifierRetryPolicy();
-        retryPolicy.setExceptionClassifier((Throwable ex) -> {
-            if (ExceptionUtils.isTransient(ex)) {
-                return new SimpleRetryPolicy(maxAttempts, Collections.singletonMap(Exception.class, true));
-            } else {
-                return new NeverRetryPolicy();
-            }
-        });
+        Map<Class<? extends Throwable>, Boolean> retryableExceptions =
+        Map.of(TransientDataAccessException.class, true, SQLTransientException.class, true);
 
-        FixedBackOffPolicy backOff = new FixedBackOffPolicy();
-        backOff.setBackOffPeriod(backoffMs);
+        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy(
+                3,                 // maxAttempts
+                retryableExceptions,
+                true               // traverseCauses
+        );
+
+        ExponentialBackOffPolicy backOff = new ExponentialBackOffPolicy();
+        backOff.setInitialInterval(initialIntervalMs);
+        backOff.setMultiplier(multiplier);
+        backOff.setMaxInterval(maxIntervalMs);
 
         retryTemplate.setRetryPolicy(retryPolicy);
         retryTemplate.setBackOffPolicy(backOff);

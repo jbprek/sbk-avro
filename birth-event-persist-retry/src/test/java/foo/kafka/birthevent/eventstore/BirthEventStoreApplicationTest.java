@@ -16,6 +16,7 @@ import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.QueryTimeoutException;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.kafka.support.KafkaHeaders;
@@ -97,7 +98,7 @@ class BirthEventStoreApplicationTest {
 
         // First two calls throw transient exception, third call persists via the repository
         doThrow(new TransientDataAccessException("Transient error 1") {
-        }).doThrow(new TransientDataAccessException("Transient error 2") {
+        }).doThrow(new QueryTimeoutException("Transient error 2") {
                 }).doAnswer(invocation -> {
                     repository.saveAndFlush(invocation.getArgument(0));
                     return null;
