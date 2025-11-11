@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class Processor {
     private final EventMapper eventMapper;
+    public static final String INCOMING_COORDINATES_HEADER_NAME =  "x-incoming-coordinates";
 
 
     public Message<BirthStatEntry>  process(Message<BirthEvent> message) {
@@ -24,6 +25,7 @@ public class Processor {
 
         return MessageBuilder
                 .withPayload(statEntry)
+                .setHeader(INCOMING_COORDINATES_HEADER_NAME, coordinates.toString())
                 .setHeader(KafkaHeaders.KEY, coordinates.toString())
                 .build();
     }
