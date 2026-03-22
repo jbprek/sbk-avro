@@ -24,11 +24,12 @@ spring:
                 key.serializer: org.apache.kafka.common.serialization.StringSerializer
                 value.serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
                 schema.registry.url: http://localhost:8081
+                # Induced error for testing purposes
+#                schema.registry.url: http://localhost:8080
         binder:
           brokers: localhost:9092
           configuration:
             schema.registry.url: http://localhost:8081
-
 
 management:
   endpoints:
