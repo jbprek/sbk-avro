@@ -13,8 +13,8 @@
         <!-- common versions -->
         <java.version>21</java.version>
         <maven.compiler.plugin.version>3.11.0</maven.compiler.plugin.version>
-        <spring-boot.version>3.5.7</spring-boot.version>
-        <spring-cloud.version>2025.0.0</spring-cloud.version>
+        <spring-boot.version>3.5.12</spring-boot.version>
+        <spring-cloud.version>2025.0.1</spring-cloud.version>
         <spring-cloud.stream.schema.version>2.2.1.RELEASE</spring-cloud.stream.schema.version>
         <spring-kafka.version>3.3.9</spring-kafka.version>
 
