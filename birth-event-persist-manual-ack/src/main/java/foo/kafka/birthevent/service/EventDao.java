@@ -1,0 +1,13 @@
+package foo.kafka.birthevent.service;
+
+/**
+ * Generic DAO that persists an entity of type {@code T}.
+ *
+ * @param <T> the entity type
+ */
+@FunctionalInterface
+public interface EventDao<T> {
+
+    void save(T entity);
+}
+

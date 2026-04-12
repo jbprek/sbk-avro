@@ -7,11 +7,12 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class BirthDao {
+public class BirthDao implements EventDao<Birth> {
 
     private final BirthRepository repository;
 
-    public void saveBirthEvent(Birth entity) {
+    @Override
+    public void save(Birth entity) {
         repository.saveAndFlush(entity);
     }
 }

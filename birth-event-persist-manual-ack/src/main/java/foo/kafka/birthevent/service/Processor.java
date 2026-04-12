@@ -1,8 +1,5 @@
 package foo.kafka.birthevent.service;
 
-import foo.avro.birth.BirthEvent;
-import foo.kafka.birthevent.eventstore.persistence.Birth;
-import foo.kafka.birthevent.eventstore.persistence.BirthMapper;
 import foo.kafka.common.MessageCoordinates;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,22 +7,27 @@ import org.springframework.dao.TransientDataAccessException;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
-import org.springframework.stereotype.Service;
 
 import java.sql.SQLTransientException;
 import java.time.Duration;
 
+/**
+ * Generic processor that maps an incoming Kafka event of type {@code E}
+ * to an entity of type {@code T}, persists it, and handles manual ack/nack.
+ *
+ * @param <E> the event (message payload) type
+ * @param <T> the entity type
+ */
 @Slf4j
-@Service
 @RequiredArgsConstructor
-public class Processor {
+public class Processor<E, T> {
 
-    private final BirthMapper mapper;
-    private final BirthDao dao;
+    private final EventMapper<E, T> mapper;
+    private final EventDao<T> dao;
 
 
-    public void process(Message<BirthEvent> message) {
-        BirthEvent event = message.getPayload();
+    public void process(Message<E> message) {
+        E event = message.getPayload();
         String key = message.getHeaders().get(KafkaHeaders.RECEIVED_KEY, String.class);
         String coordinates = MessageCoordinates.of(message).toString();
         Acknowledgment ack = message.getHeaders().get(KafkaHeaders.ACKNOWLEDGMENT, Acknowledgment.class);
@@ -34,17 +36,17 @@ public class Processor {
             return;
         }
 
-        Birth entity = mapper.toEntity(message.getPayload());
+        T entity = mapper.toEntity(event);
 
         try {
-            dao.saveBirthEvent(entity);
+            dao.save(entity);
             ackMessage(ack, coordinates);
-            log.info("Persisted BirthEvent: {}", entity);
-            log.info("Consumed BirthEvent at {}: with key={},value={}", coordinates, key, event);
+            log.info("Persisted event: {}", entity);
+            log.info("Consumed event at {}: with key={},value={}", coordinates, key, event);
         } catch (Exception e) {
             if (isTransient(e)) {
                 nackMessage(ack, Duration.ofMillis(500), coordinates);
-                log.warn("Transient Error persisting BirthEvent at {} : {} ",
+                log.warn("Transient Error persisting event at {} : {} ",
                         coordinates, e.getMessage(), e);
 
             } else {

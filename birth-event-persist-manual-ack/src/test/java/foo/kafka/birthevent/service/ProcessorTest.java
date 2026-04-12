@@ -3,12 +3,11 @@ package foo.kafka.birthevent.service;
 
 import foo.avro.birth.BirthEvent;
 import foo.kafka.birthevent.eventstore.persistence.Birth;
-import foo.kafka.birthevent.eventstore.persistence.BirthMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.QueryTimeoutException;
@@ -24,16 +23,20 @@ import static org.mockito.Mockito.*;
 class ProcessorTest {
 
     @Mock
-    BirthMapper mapper;
+    EventMapper<BirthEvent, Birth> mapper;
 
     @Mock
-    BirthDao dao;
+    EventDao<Birth> dao;
 
     @Mock
     Acknowledgment ack;
 
-    @InjectMocks
-    Processor processor;
+    Processor<BirthEvent, Birth> processor;
+
+    @BeforeEach
+    void setUp() {
+        processor = new Processor<>(mapper, dao);
+    }
 
     @DisplayName("Tests Processor process method for success, on non-transient and transient errors")
     @Test
@@ -50,7 +53,7 @@ class ProcessorTest {
 
         processor.process(message);
 
-        verify(dao, times(1)).saveBirthEvent(entity);
+        verify(dao, times(1)).save(entity);
         verify(ack, times(1)).acknowledge();
         verify(ack, never()).nack(ArgumentMatchers.any(Duration.class));
     }
@@ -62,7 +65,7 @@ class ProcessorTest {
         Birth entity = mock(Birth.class);
 
         when(mapper.toEntity(payload)).thenReturn(entity);
-        doThrow(new QueryTimeoutException("transient")).when(dao).saveBirthEvent(entity);
+        doThrow(new QueryTimeoutException("transient")).when(dao).save(entity);
 
         var message = MessageBuilder.withPayload(payload)
                 .setHeader(KafkaHeaders.ACKNOWLEDGMENT, ack)
@@ -71,7 +74,7 @@ class ProcessorTest {
 
         processor.process(message);
 
-        verify(dao, times(1)).saveBirthEvent(entity);
+        verify(dao, times(1)).save(entity);
         verify(ack, never()).acknowledge();
         verify(ack, times(1)).nack(Duration.ofMillis(500));
     }
@@ -83,7 +86,7 @@ class ProcessorTest {
         Birth entity = mock(Birth.class);
 
         when(mapper.toEntity(payload)).thenReturn(entity);
-        doThrow(new RuntimeException("fatal")).when(dao).saveBirthEvent(entity);
+        doThrow(new RuntimeException("fatal")).when(dao).save(entity);
 
         var message = MessageBuilder.withPayload(payload)
                 .setHeader(KafkaHeaders.ACKNOWLEDGMENT, ack)
@@ -92,7 +95,7 @@ class ProcessorTest {
 
         processor.process(message);
 
-        verify(dao, times(1)).saveBirthEvent(entity);
+        verify(dao, times(1)).save(entity);
         verify(ack, times(1)).acknowledge();
         verify(ack, never()).nack(ArgumentMatchers.any(Duration.class));
     }

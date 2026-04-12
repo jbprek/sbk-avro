@@ -82,13 +82,13 @@ class BirthEventStoreApplicationTest {
     void testBirthEventProcessing() {
         // ensure DAO persists in this test
         doAnswer(invocation -> { repository.saveAndFlush(invocation.getArgument(0)); return null; })
-                .when(dao).saveBirthEvent(any(Birth.class));
+                .when(dao).save(any(Birth.class));
 
         streamBridge.send("test-producer-out-0", message);
         // default mock behavior persists the entity
 
         checkEntityPersisted();
-        verify(dao, times(1)).saveBirthEvent(any(Birth.class));
+        verify(dao, times(1)).save(any(Birth.class));
     }
 
     @Test
@@ -101,7 +101,7 @@ class BirthEventStoreApplicationTest {
                 }).doAnswer(invocation -> {
                     repository.saveAndFlush(invocation.getArgument(0));
                     return null;
-                }).when(dao).saveBirthEvent(any(Birth.class));
+                }).when(dao).save(any(Birth.class));
 
         streamBridge.send("test-producer-out-0", message);
 
@@ -109,7 +109,7 @@ class BirthEventStoreApplicationTest {
         checkEntityPersisted();
 
         // Expect at least 3 dao calls: two failing attempts and one successful
-        verify(dao, atLeast(3)).saveBirthEvent(any(Birth.class));
+        verify(dao, atLeast(3)).save(any(Birth.class));
     }
 
 
@@ -118,13 +118,13 @@ class BirthEventStoreApplicationTest {
     void testBirthEventProcessingNonTransientSkippingMessage(CapturedOutput output) {
 
         doThrow(new DataIntegrityViolationException("Integrity Violation error"))
-                .when(dao).saveBirthEvent(any(Birth.class));
+                .when(dao).save(any(Birth.class));
 
         streamBridge.send("test-producer-out-0", message);
 
         // wait for the async consumer to invoke DAO and log
         Awaitility.await().pollInterval(200, TimeUnit.MILLISECONDS).atMost(5, TimeUnit.SECONDS)
-                .untilAsserted(() -> verify(dao, times(1)).saveBirthEvent(any(Birth.class)));
+                .untilAsserted(() -> verify(dao, times(1)).save(any(Birth.class)));
 
         // Processor should log a Not Transient error and skip the message
         assertTrue(output.getOut().contains("Not Transient Error persisting BirthEvent"),

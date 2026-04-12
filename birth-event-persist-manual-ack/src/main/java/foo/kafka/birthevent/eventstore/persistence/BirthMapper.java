@@ -1,10 +1,11 @@
 package foo.kafka.birthevent.eventstore.persistence;
 
 import foo.avro.birth.BirthEvent;
+import foo.kafka.birthevent.service.EventMapper;
 import org.mapstruct.*;
 
 @Mapper(unmappedTargetPolicy = ReportingPolicy.IGNORE, componentModel = MappingConstants.ComponentModel.SPRING)
-public interface BirthMapper {
+public interface BirthMapper extends EventMapper<BirthEvent, Birth> {
 
     @Mapping(source="registrationTime", target="tm")
     Birth toEntity(BirthEvent birthEvent);

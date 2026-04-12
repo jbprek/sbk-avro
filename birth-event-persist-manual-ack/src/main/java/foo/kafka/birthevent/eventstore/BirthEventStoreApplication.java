@@ -1,6 +1,9 @@
 package foo.kafka.birthevent.eventstore;
 
 import foo.avro.birth.BirthEvent;
+import foo.kafka.birthevent.eventstore.persistence.Birth;
+import foo.kafka.birthevent.eventstore.persistence.BirthMapper;
+import foo.kafka.birthevent.service.BirthDao;
 import foo.kafka.birthevent.service.Processor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
@@ -28,7 +31,12 @@ public class BirthEventStoreApplication {
     }
 
     @Bean
-    public Consumer<Message<BirthEvent>> process(Processor processor) {
+    public Processor<BirthEvent, Birth> birthEventProcessor(BirthMapper mapper, BirthDao dao) {
+        return new Processor<>(mapper, dao);
+    }
+
+    @Bean
+    public Consumer<Message<BirthEvent>> process(Processor<BirthEvent, Birth> processor) {
         return processor::process;
     }
 
