@@ -1,6 +1,7 @@
 package foo.kafka.deathevent.service;
 
 import foo.avro.death.DeathEvent;
+import foo.kafka.common.MessageCoordinates;
 import foo.kafka.deathevent.eventstore.persistence.FemaleDeathMapper;
 import foo.kafka.deathevent.eventstore.persistence.FemaleDeathRepository;
 import foo.kafka.deathevent.eventstore.persistence.MaleDeathMapper;
@@ -20,18 +21,21 @@ public class DeathDao implements EventDao<DeathEvent> {
     private final FemaleDeathRepository femaleDeathRepository;
 
     @Override
-    public void save(DeathEvent event) {
+    public void save(DeathEvent event, MessageCoordinates coordinates) {
         String gender = event.getGender();
         if ("M".equals(gender)) {
             log.debug("Routing DeathEvent id={} to male_deaths", event.getId());
-            maleDeathRepository.saveAndFlush(maleDeathMapper.toEntity(event));
+            var entity = maleDeathMapper.toEntity(event);
+            maleDeathRepository.saveAndFlush(entity);
+            log.info("Persisted [{}] id={} from {}", entity.getClass().getSimpleName(), entity.getId(), coordinates);
         } else if ("F".equals(gender)) {
             log.debug("Routing DeathEvent id={} to female_deaths", event.getId());
-            femaleDeathRepository.saveAndFlush(femaleDeathMapper.toEntity(event));
+            var entity = femaleDeathMapper.toEntity(event);
+            femaleDeathRepository.saveAndFlush(entity);
+            log.info("Persisted [{}] id={} from {}", entity.getClass().getSimpleName(), entity.getId(), coordinates);
         } else {
             throw new IllegalArgumentException(
                     "Unknown or null gender '%s' for DeathEvent id=%s — skipping".formatted(gender, event.getId()));
         }
     }
 }
-

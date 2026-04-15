@@ -1,6 +1,7 @@
 package foo.kafka.deathevent.service;
 
 import foo.avro.death.DeathEvent;
+import foo.kafka.common.MessageCoordinates;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,7 +51,7 @@ class ProcessorTest {
 
         processor.process(message);
 
-        verify(dao, times(1)).save(payload);
+        verify(dao, times(1)).save(eq(payload), any(MessageCoordinates.class));
         verify(ack, times(1)).acknowledge();
         verify(ack, never()).nack(ArgumentMatchers.any(Duration.class));
     }
@@ -61,7 +62,7 @@ class ProcessorTest {
         DeathEvent payload = mock(DeathEvent.class);
 
         when(mapper.toEntity(payload)).thenReturn(payload);
-        doThrow(new QueryTimeoutException("transient")).when(dao).save(payload);
+        doThrow(new QueryTimeoutException("transient")).when(dao).save(eq(payload), any(MessageCoordinates.class));
 
         var message = MessageBuilder.withPayload(payload)
                 .setHeader(KafkaHeaders.ACKNOWLEDGMENT, ack)
@@ -70,7 +71,7 @@ class ProcessorTest {
 
         processor.process(message);
 
-        verify(dao, times(1)).save(payload);
+        verify(dao, times(1)).save(eq(payload), any(MessageCoordinates.class));
         verify(ack, never()).acknowledge();
         verify(ack, times(1)).nack(Duration.ofMillis(500));
     }
@@ -81,7 +82,7 @@ class ProcessorTest {
         DeathEvent payload = mock(DeathEvent.class);
 
         when(mapper.toEntity(payload)).thenReturn(payload);
-        doThrow(new RuntimeException("fatal")).when(dao).save(payload);
+        doThrow(new RuntimeException("fatal")).when(dao).save(eq(payload), any(MessageCoordinates.class));
 
         var message = MessageBuilder.withPayload(payload)
                 .setHeader(KafkaHeaders.ACKNOWLEDGMENT, ack)
@@ -90,9 +91,8 @@ class ProcessorTest {
 
         processor.process(message);
 
-        verify(dao, times(1)).save(payload);
+        verify(dao, times(1)).save(eq(payload), any(MessageCoordinates.class));
         verify(ack, times(1)).acknowledge();
         verify(ack, never()).nack(ArgumentMatchers.any(Duration.class));
     }
 }
-

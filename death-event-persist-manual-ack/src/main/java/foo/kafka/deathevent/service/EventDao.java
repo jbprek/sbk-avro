@@ -1,5 +1,7 @@
 package foo.kafka.deathevent.service;
 
+import foo.kafka.common.MessageCoordinates;
+
 /**
  * Generic DAO that persists an entity of type {@code T}.
  *
@@ -8,6 +10,5 @@ package foo.kafka.deathevent.service;
 @FunctionalInterface
 public interface EventDao<T> {
 
-    void save(T entity);
+    void save(T entity, MessageCoordinates coordinates);
 }
-

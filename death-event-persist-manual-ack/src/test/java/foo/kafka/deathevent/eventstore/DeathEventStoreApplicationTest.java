@@ -1,6 +1,7 @@
 package foo.kafka.deathevent.eventstore;
 
 import foo.avro.death.DeathEvent;
+import foo.kafka.common.MessageCoordinates;
 import foo.kafka.deathevent.eventstore.persistence.FemaleDeathRepository;
 import foo.kafka.deathevent.eventstore.persistence.MaleDeathRepository;
 import foo.kafka.deathevent.service.DeathDao;
@@ -43,40 +44,25 @@ import static org.mockito.Mockito.*;
 class DeathEventStoreApplicationTest {
 
     private static final DeathEvent maleDeathEvent = DeathEvent.newBuilder()
-            .setId(1L)
-            .setName("John Smith")
+            .setId(1L).setName("John Smith")
             .setDod(LocalDate.of(2025, 1, 15))
-            .setTown("London")
-            .setGender("M")
-            .build();
+            .setTown("London").setGender("M").build();
 
     private static final DeathEvent femaleDeathEvent = DeathEvent.newBuilder()
-            .setId(2L)
-            .setName("Jane Smith")
+            .setId(2L).setName("Jane Smith")
             .setDod(LocalDate.of(2025, 3, 20))
-            .setTown("Manchester")
-            .setGender("F")
-            .build();
+            .setTown("Manchester").setGender("F").build();
 
     private static final Message<DeathEvent> maleMessage = MessageBuilder.withPayload(maleDeathEvent)
-            .setHeader(KafkaHeaders.KEY, maleDeathEvent.getTown())
-            .build();
+            .setHeader(KafkaHeaders.KEY, maleDeathEvent.getTown()).build();
 
     private static final Message<DeathEvent> femaleMessage = MessageBuilder.withPayload(femaleDeathEvent)
-            .setHeader(KafkaHeaders.KEY, femaleDeathEvent.getTown())
-            .build();
+            .setHeader(KafkaHeaders.KEY, femaleDeathEvent.getTown()).build();
 
-    @Autowired
-    private StreamBridge streamBridge;
-
-    @Autowired
-    private MaleDeathRepository maleDeathRepository;
-
-    @Autowired
-    private FemaleDeathRepository femaleDeathRepository;
-
-    @MockitoBean
-    private DeathDao dao;
+    @Autowired private StreamBridge streamBridge;
+    @Autowired private MaleDeathRepository maleDeathRepository;
+    @Autowired private FemaleDeathRepository femaleDeathRepository;
+    @MockitoBean  private DeathDao dao;
 
     @BeforeEach
     void setup() {
@@ -91,14 +77,13 @@ class DeathEventStoreApplicationTest {
     void testMaleDeathEventProcessing() {
         doAnswer(invocation -> {
             DeathEvent event = invocation.getArgument(0);
+            // argument 1 is MessageCoordinates — not needed for in-test persistence
             var entity = new foo.kafka.deathevent.eventstore.persistence.MaleDeath();
-            entity.setId(event.getId());
-            entity.setName(event.getName());
-            entity.setDod(event.getDod());
-            entity.setTown(event.getTown());
+            entity.setId(event.getId()); entity.setName(event.getName());
+            entity.setDod(event.getDod()); entity.setTown(event.getTown());
             maleDeathRepository.saveAndFlush(entity);
             return null;
-        }).when(dao).save(any(DeathEvent.class));
+        }).when(dao).save(any(DeathEvent.class), any(MessageCoordinates.class));
 
         streamBridge.send("test-producer-out-0", maleMessage);
 
@@ -111,7 +96,7 @@ class DeathEventStoreApplicationTest {
                         () -> assertEquals("London", entity.getTown())
                 )
         );
-        verify(dao, times(1)).save(any(DeathEvent.class));
+        verify(dao, times(1)).save(any(DeathEvent.class), any(MessageCoordinates.class));
     }
 
     @Test
@@ -119,14 +104,13 @@ class DeathEventStoreApplicationTest {
     void testFemaleDeathEventProcessing() {
         doAnswer(invocation -> {
             DeathEvent event = invocation.getArgument(0);
+            // argument 1 is MessageCoordinates — not needed for in-test persistence
             var entity = new foo.kafka.deathevent.eventstore.persistence.FemaleDeath();
-            entity.setId(event.getId());
-            entity.setName(event.getName());
-            entity.setDod(event.getDod());
-            entity.setTown(event.getTown());
+            entity.setId(event.getId()); entity.setName(event.getName());
+            entity.setDod(event.getDod()); entity.setTown(event.getTown());
             femaleDeathRepository.saveAndFlush(entity);
             return null;
-        }).when(dao).save(any(DeathEvent.class));
+        }).when(dao).save(any(DeathEvent.class), any(MessageCoordinates.class));
 
         streamBridge.send("test-producer-out-0", femaleMessage);
 
@@ -139,7 +123,7 @@ class DeathEventStoreApplicationTest {
                         () -> assertEquals("Manchester", entity.getTown())
                 )
         );
-        verify(dao, times(1)).save(any(DeathEvent.class));
+        verify(dao, times(1)).save(any(DeathEvent.class), any(MessageCoordinates.class));
     }
 
     @Test
@@ -149,14 +133,13 @@ class DeathEventStoreApplicationTest {
         }).doThrow(new TransientDataAccessException("Transient error 2") {
         }).doAnswer(invocation -> {
             DeathEvent event = invocation.getArgument(0);
+            // argument 1 is MessageCoordinates — not needed for in-test persistence
             var entity = new foo.kafka.deathevent.eventstore.persistence.MaleDeath();
-            entity.setId(event.getId());
-            entity.setName(event.getName());
-            entity.setDod(event.getDod());
-            entity.setTown(event.getTown());
+            entity.setId(event.getId()); entity.setName(event.getName());
+            entity.setDod(event.getDod()); entity.setTown(event.getTown());
             maleDeathRepository.saveAndFlush(entity);
             return null;
-        }).when(dao).save(any(DeathEvent.class));
+        }).when(dao).save(any(DeathEvent.class), any(MessageCoordinates.class));
 
         streamBridge.send("test-producer-out-0", maleMessage);
 
@@ -167,22 +150,22 @@ class DeathEventStoreApplicationTest {
                         () -> assertEquals("John Smith", entity.getName())
                 )
         );
-        verify(dao, atLeast(3)).save(any(DeathEvent.class));
+        verify(dao, atLeast(3)).save(any(DeathEvent.class), any(MessageCoordinates.class));
     }
 
     @Test
     @DisplayName("On a non-transient DB error, the DeathEvent is not persisted and the message is skipped")
     void testDeathEventProcessingNonTransientSkippingMessage(CapturedOutput output) {
         doThrow(new DataIntegrityViolationException("Integrity Violation error"))
-                .when(dao).save(any(DeathEvent.class));
+                .when(dao).save(any(DeathEvent.class), any(MessageCoordinates.class));
 
         streamBridge.send("test-producer-out-0", maleMessage);
 
         Awaitility.await().pollInterval(200, TimeUnit.MILLISECONDS).atMost(5, TimeUnit.SECONDS)
-                .untilAsserted(() -> verify(dao, times(1)).save(any(DeathEvent.class)));
+                .untilAsserted(() -> verify(dao, times(1))
+                        .save(any(DeathEvent.class), any(MessageCoordinates.class)));
 
         assertTrue(output.getOut().contains("Not Transient Error persisting DeathEvent"),
                 "Processor should log non-transient error and skip the message");
     }
 }
-

@@ -38,9 +38,9 @@ public class Processor<E, T> {
         T entity = mapper.toEntity(event);
 
         try {
-            dao.save(entity);
+            dao.save(entity, MessageCoordinates.of(message));
             ackMessage(ack, coordinates);
-            log.info("Persisted [{}] at {}: key={}, event={}", entity.getClass().getSimpleName(), coordinates, key, event);
+            log.info("Consumed at {}: key={}, event={}", coordinates, key, event);
         } catch (Exception e) {
             if (isTransient(e)) {
                 nackMessage(ack, Duration.ofMillis(500), coordinates);
