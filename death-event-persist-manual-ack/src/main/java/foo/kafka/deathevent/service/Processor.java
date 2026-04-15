@@ -12,40 +12,36 @@ import java.sql.SQLTransientException;
 import java.time.Duration;
 
 /**
- * Generic processor that maps an incoming Kafka event of type {@code E}
- * to an entity of type {@code T}, persists it, and handles manual ack/nack.
+ * Generic processor that passes an incoming Kafka event of type {@code E}
+ * directly to an {@link EventDao} for persistence, and handles manual ack/nack.
+ * No mapping occurs here — any entity conversion is the DAO's responsibility.
  *
  * @param <E> the event (message payload) type
- * @param <T> the entity type
  */
 @Slf4j
 @RequiredArgsConstructor
-public class Processor<E, T> {
+public class Processor<E> {
 
-    private final EventMapper<E, T> mapper;
-    private final EventDao<T> dao;
+    private final EventDao<E> dao;
 
     public void process(Message<E> message) {
         E event = message.getPayload();
         String key = message.getHeaders().get(KafkaHeaders.RECEIVED_KEY, String.class);
-        String coordinates = MessageCoordinates.of(message).toString();
+        MessageCoordinates coordinates = MessageCoordinates.of(message);
         Acknowledgment ack = message.getHeaders().get(KafkaHeaders.ACKNOWLEDGMENT, Acknowledgment.class);
         if (ack == null) {
             log.warn("No acknowledgment found in message headers at {}", coordinates);
             return;
         }
 
-        T entity = mapper.toEntity(event);
-
         try {
-            dao.save(entity, MessageCoordinates.of(message));
+            dao.save(event, coordinates);
             ackMessage(ack, coordinates);
             log.info("Consumed at {}: key={}, event={}", coordinates, key, event);
         } catch (Exception e) {
             if (isTransient(e)) {
                 nackMessage(ack, Duration.ofMillis(500), coordinates);
-                log.warn("Transient Error persisting event at {} : {} ",
-                        coordinates, e.getMessage(), e);
+                log.warn("Transient Error persisting event at {} : {} ", coordinates, e.getMessage(), e);
             } else {
                 ackMessage(ack, coordinates);
                 log.error("Not Transient Error persisting DeathEvent at {} : {}, skipping message ",
@@ -65,7 +61,7 @@ public class Processor<E, T> {
         return false;
     }
 
-    private void ackMessage(Acknowledgment ack, String coordinates) {
+    private void ackMessage(Acknowledgment ack, MessageCoordinates coordinates) {
         try {
             ack.acknowledge();
             log.debug("Acknowledged message at {}", coordinates);
@@ -75,7 +71,7 @@ public class Processor<E, T> {
         }
     }
 
-    private void nackMessage(Acknowledgment ack, Duration duration, String coordinates) {
+    private void nackMessage(Acknowledgment ack, Duration duration, MessageCoordinates coordinates) {
         try {
             ack.nack(duration);
             log.debug("Nack-ed message at {}", coordinates);
@@ -85,4 +81,3 @@ public class Processor<E, T> {
         }
     }
 }
-

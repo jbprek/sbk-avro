@@ -16,33 +16,26 @@ import org.springframework.messaging.support.MessageBuilder;
 
 import java.time.Duration;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ProcessorTest {
 
-    @Mock
-    EventMapper<DeathEvent, DeathEvent> mapper;
+    @Mock EventDao<DeathEvent> dao;
+    @Mock Acknowledgment ack;
 
-    @Mock
-    EventDao<DeathEvent> dao;
-
-    @Mock
-    Acknowledgment ack;
-
-    Processor<DeathEvent, DeathEvent> processor;
+    Processor<DeathEvent> processor;
 
     @BeforeEach
     void setUp() {
-        processor = new Processor<>(mapper, dao);
+        processor = new Processor<>(dao);
     }
 
     @Test
-    @DisplayName("On success, processor saves the entity and acknowledges the message")
+    @DisplayName("On success, processor saves the event and acknowledges the message")
     void testProcessSuccessShouldSaveAndAcknowledge() {
         DeathEvent payload = mock(DeathEvent.class);
-
-        when(mapper.toEntity(payload)).thenReturn(payload);
 
         var message = MessageBuilder.withPayload(payload)
                 .setHeader(KafkaHeaders.ACKNOWLEDGMENT, ack)
@@ -60,8 +53,6 @@ class ProcessorTest {
     @DisplayName("On transient error, processor nacks the message for retry")
     void testProcessTransientErrorShouldNack() {
         DeathEvent payload = mock(DeathEvent.class);
-
-        when(mapper.toEntity(payload)).thenReturn(payload);
         doThrow(new QueryTimeoutException("transient")).when(dao).save(eq(payload), any(MessageCoordinates.class));
 
         var message = MessageBuilder.withPayload(payload)
@@ -80,8 +71,6 @@ class ProcessorTest {
     @DisplayName("On non-transient error, processor acknowledges and skips the message")
     void testProcessNonTransientErrorShouldAckAndSkip() {
         DeathEvent payload = mock(DeathEvent.class);
-
-        when(mapper.toEntity(payload)).thenReturn(payload);
         doThrow(new RuntimeException("fatal")).when(dao).save(eq(payload), any(MessageCoordinates.class));
 
         var message = MessageBuilder.withPayload(payload)

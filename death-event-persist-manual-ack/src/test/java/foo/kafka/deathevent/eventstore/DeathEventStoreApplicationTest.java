@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 import static foo.kafka.deathevent.eventstore.TestUtils.awaitUntilPresentAndAssert;
 import static foo.kafka.deathevent.eventstore.TestUtils.awaitUntilTableIsEmpty;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -89,12 +89,13 @@ class DeathEventStoreApplicationTest {
 
         awaitUntilPresentAndAssert(
                 () -> maleDeathRepository.findById(1L),
-                entity -> assertAll(
-                        () -> assertNotNull(entity),
-                        () -> assertEquals("John Smith", entity.getName()),
-                        () -> assertEquals(LocalDate.of(2025, 1, 15), entity.getDod()),
-                        () -> assertEquals("London", entity.getTown())
-                )
+                entity -> assertThat(entity)
+                        .isNotNull()
+                        .satisfies(e -> {
+                            assertThat(e.getName()).isEqualTo("John Smith");
+                            assertThat(e.getDod()).isEqualTo(LocalDate.of(2025, 1, 15));
+                            assertThat(e.getTown()).isEqualTo("London");
+                        })
         );
         verify(dao, times(1)).save(any(DeathEvent.class), any(MessageCoordinates.class));
     }
@@ -116,12 +117,13 @@ class DeathEventStoreApplicationTest {
 
         awaitUntilPresentAndAssert(
                 () -> femaleDeathRepository.findById(2L),
-                entity -> assertAll(
-                        () -> assertNotNull(entity),
-                        () -> assertEquals("Jane Smith", entity.getName()),
-                        () -> assertEquals(LocalDate.of(2025, 3, 20), entity.getDod()),
-                        () -> assertEquals("Manchester", entity.getTown())
-                )
+                entity -> assertThat(entity)
+                        .isNotNull()
+                        .satisfies(e -> {
+                            assertThat(e.getName()).isEqualTo("Jane Smith");
+                            assertThat(e.getDod()).isEqualTo(LocalDate.of(2025, 3, 20));
+                            assertThat(e.getTown()).isEqualTo("Manchester");
+                        })
         );
         verify(dao, times(1)).save(any(DeathEvent.class), any(MessageCoordinates.class));
     }
@@ -145,10 +147,7 @@ class DeathEventStoreApplicationTest {
 
         awaitUntilPresentAndAssert(
                 () -> maleDeathRepository.findById(1L),
-                entity -> assertAll(
-                        () -> assertNotNull(entity),
-                        () -> assertEquals("John Smith", entity.getName())
-                )
+                entity -> assertThat(entity.getName()).isEqualTo("John Smith")
         );
         verify(dao, atLeast(3)).save(any(DeathEvent.class), any(MessageCoordinates.class));
     }
@@ -165,7 +164,6 @@ class DeathEventStoreApplicationTest {
                 .untilAsserted(() -> verify(dao, times(1))
                         .save(any(DeathEvent.class), any(MessageCoordinates.class)));
 
-        assertTrue(output.getOut().contains("Not Transient Error persisting DeathEvent"),
-                "Processor should log non-transient error and skip the message");
+        assertThat(output.getOut()).contains("Not Transient Error persisting DeathEvent");
     }
 }

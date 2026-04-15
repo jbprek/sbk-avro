@@ -27,17 +27,13 @@ public class DeathEventStoreApplication {
         SpringApplication.run(DeathEventStoreApplication.class, args);
     }
 
-    /**
-     * Identity mapper: the raw DeathEvent is passed straight through to DeathDao,
-     * which owns the gender-based routing and entity mapping via MapStruct.
-     */
     @Bean
-    public Processor<DeathEvent, DeathEvent> deathEventProcessor(DeathDao dao) {
-        return new Processor<>(event -> event, dao);
+    public Processor<DeathEvent> deathEventProcessor(DeathDao dao) {
+        return new Processor<>(dao);
     }
 
     @Bean
-    public Consumer<Message<DeathEvent>> process(Processor<DeathEvent, DeathEvent> processor) {
+    public Consumer<Message<DeathEvent>> process(Processor<DeathEvent> processor) {
         return processor::process;
     }
 }
