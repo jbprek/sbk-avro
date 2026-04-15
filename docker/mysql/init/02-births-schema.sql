@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS births.births
     town VARCHAR(50),
     tm TIMESTAMP,
     weight  DECIMAL(3,1),
+    gender  CHAR(1),
     UNIQUE KEY unique_name_dob (name, dob, town)
 
 ) ENGINE = InnoDB;

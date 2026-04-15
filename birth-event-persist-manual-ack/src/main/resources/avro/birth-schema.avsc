@@ -61,6 +61,14 @@
         }
       ],
       "default": null
+    },
+    {
+      "name": "gender",
+      "type": [
+        "null",
+        "string"
+      ],
+      "default": null
     }
   ]
 }

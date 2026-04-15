@@ -1,0 +1,45 @@
+server:
+  port: 10001
+spring:
+  application:
+    name: death-event-random-producer
+
+  cloud:
+    stream:
+      function:
+        definition: randomSupplier
+      bindings:
+        randomSupplier-out-0:
+          destination: death.register.avro
+          content-type: application/*+avro
+          producer:
+            use-native-encoding: true
+      poller:
+        fixed-delay: 3000
+      kafka:
+        bindings:
+          randomSupplier-out-0:
+            producer:
+              configuration:
+                key.serializer: org.apache.kafka.common.serialization.StringSerializer
+                value.serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+                schema.registry.url: http://localhost:8081
+        binder:
+          brokers: localhost:9092
+          configuration:
+            schema.registry.url: http://localhost:8081
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,beans
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+

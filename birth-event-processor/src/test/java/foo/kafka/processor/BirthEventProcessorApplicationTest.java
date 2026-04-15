@@ -89,6 +89,7 @@ class BirthEventProcessorApplicationTest {
                 .setTown("Athens")
                 .setRegistrationTime(Instant.EPOCH)
                 .setWeight(new BigDecimal("3.5"))
+                .setGender("M")
                 .build();
 
         Message<BirthEvent> message = MessageBuilder.withPayload(birthEventIn)

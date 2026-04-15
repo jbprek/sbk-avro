@@ -224,6 +224,9 @@
         <module>birth-event-persist-manual-ack</module>
         <module>birth-event-persist-retry</module>
         <module>birth-stats-simple-consumer</module>
+        <module>death-event-random-producer</module>
+        <module>death-event-simple-consumer</module>
+        <module>death-event-persist-manual-ack</module>
     </modules>
 
 </project>

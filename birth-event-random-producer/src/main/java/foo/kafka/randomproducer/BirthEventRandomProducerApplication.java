@@ -43,6 +43,7 @@ public class BirthEventRandomProducerApplication {
                     .setDob(LocalDate.now().minusDays(randomDaysAgo()))
                     .setTown(town)
                     .setWeight(new BigDecimal("3.3"))
+                    .setGender(RANDOM.nextBoolean() ? "M" : "F")
                     .build();
 
             int count = COUNTER.incrementAndGet();

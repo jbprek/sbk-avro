@@ -4,9 +4,11 @@ set -e
 BROKER=broker:29092
 TOPIC1=birth.register.avro
 TOPIC2=birth.stats.avro
+TOPIC3=death.register.avro
 SCHEMA_REGISTRY_URL=http://schema-registry:8081
 SCHEMA_FILE=/schemas/birth-schema.avsc
 SCHEMA_FILE2=/schemas/birth-stat-entry.avsc
+SCHEMA_FILE3=/schemas/death-schema.avsc
 
 # Wait for broker
 echo "Waiting for Kafka broker at $BROKER..."
@@ -18,6 +20,7 @@ echo "Kafka broker is up."
 # Create topic if not exists
 kafka-topics --bootstrap-server $BROKER --create --if-not-exists --topic $TOPIC1 --partitions 3 --replication-factor 1
 kafka-topics --bootstrap-server $BROKER --create --if-not-exists --topic $TOPIC2 --partitions 3 --replication-factor 1
+kafka-topics --bootstrap-server $BROKER --create --if-not-exists --topic $TOPIC3 --partitions 3 --replication-factor 1
 
 # Register schema
 # Wait for Schema Registry
@@ -33,6 +36,10 @@ if [ ! -f "$SCHEMA_FILE" ]; then
 fi
 if [ ! -f "$SCHEMA_FILE2" ]; then
   echo "Schema file $SCHEMA_FILE2 not found! Aborting registration."
+  exit 1
+fi
+if [ ! -f "$SCHEMA_FILE3" ]; then
+  echo "Schema file $SCHEMA_FILE3 not found! Aborting registration."
   exit 1
 fi
 
@@ -88,5 +95,6 @@ register_schema() {
 # Register schemas
 register_schema "$SCHEMA_FILE" "$TOPIC1-value" || exit 1
 register_schema "$SCHEMA_FILE2" "$TOPIC2-value" || exit 1
+register_schema "$SCHEMA_FILE3" "$TOPIC3-value" || exit 1
 
 echo "Done."

@@ -38,4 +38,8 @@ public class Birth {
     @Column(name = "weight", precision = 3, scale = 1)
     private BigDecimal weight;
 
+    @Size(max = 1)
+    @Column(name = "gender", length = 1)
+    private String gender;
+
 }
