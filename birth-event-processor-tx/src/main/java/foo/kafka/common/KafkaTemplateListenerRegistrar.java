@@ -26,4 +26,3 @@ public class KafkaTemplateListenerRegistrar implements BeanPostProcessor {
         return bean;
     }
 }
-
