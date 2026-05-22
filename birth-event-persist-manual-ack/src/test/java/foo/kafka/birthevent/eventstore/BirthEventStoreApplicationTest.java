@@ -1,6 +1,7 @@
 package foo.kafka.birthevent.eventstore;
 
 import foo.avro.birth.BirthEvent;
+import foo.avro.birth.Gender;
 import foo.kafka.birthevent.eventstore.persistence.Birth;
 import foo.kafka.birthevent.eventstore.persistence.BirthRepository;
 import foo.kafka.birthevent.service.BirthDao;
@@ -33,7 +34,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -53,7 +54,7 @@ class BirthEventStoreApplicationTest {
             .setTown("Athens")
             .setRegistrationTime(Instant.EPOCH)
             .setWeight(new BigDecimal("3.5"))
-            .setGender("M")
+            .setGender(Gender.MALE)
             .build();
 
 
@@ -128,20 +129,23 @@ class BirthEventStoreApplicationTest {
                 .untilAsserted(() -> verify(dao, times(1)).save(any(Birth.class)));
 
         // Processor should log a Not Transient error and skip the message
-        assertTrue(output.getOut().contains("Not Transient Error persisting BirthEvent"),
-                "Processor should log non-transient error and skip the message");
+        assertThat(output.getOut())
+                .as("Processor should log non-transient error and skip the message")
+                .contains("Not Transient Error persisting BirthEvent");
     }
 
 
     private void checkEntityPersisted() {
         awaitUntilPresentAndAssert(
                 () -> repository.findById(1L),
-                entity -> assertAll(
-                        () -> assertNotNull(entity, "Entity should not be null"),
-                        () -> assertEquals("John", entity.getName(), "Names should match"),
-                        () -> assertEquals(LocalDate.EPOCH, entity.getDob(), "DOB should match"),
-                        () -> assertEquals("Athens", entity.getTown(), "Towns should match")
-                )
+                entity -> assertThat(entity)
+                        .as("Entity should not be null")
+                        .isNotNull()
+                        .satisfies(it -> {
+                            assertThat(it.getName()).as("Names should match").isEqualTo("John");
+                            assertThat(it.getDob()).as("DOB should match").isEqualTo(LocalDate.EPOCH);
+                            assertThat(it.getTown()).as("Towns should match").isEqualTo("Athens");
+                        })
         );
     }
 
@@ -153,7 +157,7 @@ class BirthEventStoreApplicationTest {
                 .atMost(60, TimeUnit.SECONDS)
                 .untilAsserted(() -> {
                     var optional = supplier.get();
-                    assertTrue(optional.isPresent());
+                    assertThat(optional).isPresent();
                     assertions.accept(optional.get());
                 });
     }

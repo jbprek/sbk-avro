@@ -23,6 +23,8 @@ spring:
               configuration:
                 key.serializer: org.apache.kafka.common.serialization.StringSerializer
                 value.serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+                enable.idempotence: true
+                acks: all
                 schema.registry.url: http://localhost:8081
         binder:
           brokers: localhost:9092

@@ -201,7 +201,7 @@
                             <configuration>
                                 <enableDecimalLogicalType>true</enableDecimalLogicalType>
                                 <createOptionalGetters>true</createOptionalGetters>
-                                <sourceDirectory>${project.basedir}/src/main/resources/avro</sourceDirectory>
+                                <sourceDirectory>${project.parent.basedir}/avro/schemas</sourceDirectory>
                                 <outputDirectory>${project.build.directory}/generated-sources/avro</outputDirectory>
                                 <stringType>String</stringType>
                                 <includes>
@@ -220,13 +220,10 @@
     <modules>
         <module>birth-event-random-producer</module>
         <module>birth-event-processor</module>
+        <module>birth-event-processor-tx</module>
         <module>birth-event-simple-consumer</module>
         <module>birth-event-persist-manual-ack</module>
-        <module>birth-event-persist-retry</module>
         <module>birth-stats-simple-consumer</module>
-        <module>death-event-random-producer</module>
-        <module>death-event-simple-consumer</module>
-        <module>death-event-persist-manual-ack</module>
     </modules>
 
 </project>

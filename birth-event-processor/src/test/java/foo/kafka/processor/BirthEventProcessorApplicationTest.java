@@ -2,6 +2,7 @@ package foo.kafka.processor;
 
 import foo.avro.birth.BirthEvent;
 import foo.avro.birth.BirthStatEntry;
+import foo.avro.birth.Gender;
 import foo.kafka.processor.service.EventMapper;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroDeserializerConfig;
@@ -14,7 +15,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.Assertions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.system.OutputCaptureExtension;
@@ -33,6 +33,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(OutputCaptureExtension.class)
 @SpringBootTest(classes = BirthEventProcessorApplication.class, properties = {
@@ -89,7 +91,7 @@ class BirthEventProcessorApplicationTest {
                 .setTown("Athens")
                 .setRegistrationTime(Instant.EPOCH)
                 .setWeight(new BigDecimal("3.5"))
-                .setGender("M")
+                .setGender(Gender.MALE)
                 .build();
 
         Message<BirthEvent> message = MessageBuilder.withPayload(birthEventIn)
@@ -102,9 +104,11 @@ class BirthEventProcessorApplicationTest {
         var kafakRecord = kakfaRecords.iterator().next();
         var birthStatOut = kafakRecord.value();
         var expectedStatEntry = mapper.eventToStatEntry(birthEventIn);
-        Assertions.assertNotNull(birthStatOut, "Processed BirthStatEntry should not be null");
-        Assertions.assertEquals(expectedStatEntry.getId(), birthStatOut.getId(), "ids should match");
-        Assertions.assertEquals(expectedStatEntry.getDob(), birthStatOut.getDob(), "dob should match");
-        Assertions.assertEquals(expectedStatEntry.getTown(), birthStatOut.getTown(), "town should match");
+        assertThat(birthStatOut)
+                .as("Processed BirthStatEntry should not be null")
+                .isNotNull();
+        assertThat(birthStatOut.getId()).as("ids should match").isEqualTo(expectedStatEntry.getId());
+        assertThat(birthStatOut.getDob()).as("dob should match").isEqualTo(expectedStatEntry.getDob());
+        assertThat(birthStatOut.getTown()).as("town should match").isEqualTo(expectedStatEntry.getTown());
     }
 }

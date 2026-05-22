@@ -1,7 +1,7 @@
 {
   "type": "record",
-  "name": "DeathEvent",
-  "namespace": "foo.avro.death",
+  "name": "BirthStatEntry",
+  "namespace": "foo.avro.birth",
   "fields": [
     {
       "name": "id",
@@ -12,15 +12,7 @@
       "default": null
     },
     {
-      "name": "name",
-      "type": [
-        "null",
-        "string"
-      ],
-      "default": null
-    },
-    {
-      "name": "dod",
+      "name": "dob",
       "type": [
         "null",
         {
@@ -40,11 +32,14 @@
     },
     {
       "name": "gender",
-      "type": [
-        "null",
-        "string"
-      ],
-      "default": null
+      "type": {
+        "type": "enum",
+        "name": "Gender",
+        "symbols": [
+          "MALE",
+          "FEMALE"
+        ]
+      }
     }
   ]
 }

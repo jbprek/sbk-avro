@@ -1,12 +1,14 @@
 package foo.kafka.randomproducer;
 
 import foo.avro.birth.BirthEvent;
+import foo.avro.birth.Gender;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -39,11 +41,12 @@ public class BirthEventRandomProducerApplication {
             var town = generateRandomTown();
             var event = BirthEvent.newBuilder()
                     .setId(RANDOM.nextLong(1, 10000))
+                    .setRegistrationTime(Instant.now())
                     .setName(generateRandomName())
                     .setDob(LocalDate.now().minusDays(randomDaysAgo()))
                     .setTown(town)
                     .setWeight(new BigDecimal("3.3"))
-                    .setGender(RANDOM.nextBoolean() ? "M" : "F")
+                    .setGender(RANDOM.nextBoolean() ? Gender.MALE : Gender.FEMALE)
                     .build();
 
             int count = COUNTER.incrementAndGet();

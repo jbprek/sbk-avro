@@ -8,15 +8,16 @@ import org.springframework.stereotype.Component;
 public class EventMapper {
 
     public BirthStatEntry eventToStatEntry(BirthEvent event) {
-        if ( event == null ) {
+        if (event == null) {
             return null;
         }
 
         BirthStatEntry birthStatEntry = new BirthStatEntry();
 
-        birthStatEntry.setId( event.getId() );
-        birthStatEntry.setDob( event.getDob() );
-        birthStatEntry.setTown( event.getTown() );
+        birthStatEntry.setId(event.getId());
+        birthStatEntry.setDob(event.getDob());
+        birthStatEntry.setTown(event.getTown());
+        birthStatEntry.setGender(event.getGender());
 
         return birthStatEntry;
     }

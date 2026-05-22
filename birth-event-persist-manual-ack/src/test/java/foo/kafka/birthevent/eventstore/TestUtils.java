@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestUtils {
     private TestUtils() {
@@ -22,7 +22,7 @@ public class TestUtils {
                 .atMost(5, TimeUnit.SECONDS)
                 .untilAsserted(() -> {
                     var optional = supplier.get();
-                    assertTrue(optional.isPresent());
+                    assertThat(optional).isPresent();
                     assertions.accept(optional.get());
                 });
     }

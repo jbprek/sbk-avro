@@ -75,7 +75,7 @@ services:
     environment:
       - "MYSQL_ROOT_PASSWORD=root"
     volumes:
-      - mysql-sbk-tx-data:/var/lib/mysql
+      - sbk-mysql-data:/var/lib/mysql
       - ./mysql/init:/docker-entrypoint-initdb.d
     networks:
       - sbk-avro-net
@@ -96,7 +96,7 @@ services:
     restart: "no"
 
 volumes:
-  mysql-sbk-tx-data:
+  sbk-mysql-data:
 
 networks:
   sbk-avro-net:

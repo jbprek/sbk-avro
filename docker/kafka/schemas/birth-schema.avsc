@@ -64,11 +64,14 @@
     },
     {
       "name": "gender",
-      "type": [
-        "null",
-        "string"
-      ],
-      "default": null
+      "type": {
+        "type": "enum",
+        "name": "Gender",
+        "symbols": [
+          "MALE",
+          "FEMALE"
+        ]
+      }
     }
   ]
 }
